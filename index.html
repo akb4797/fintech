@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget & Expenditure Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --primary: #0284c7;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      margin: 0;
+      padding: 24px;
+    }
+
+    .header {
+      max-width: 1400px;
+      margin: 0 auto 24px auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .header p {
+      margin: 4px 0 0 0;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .btn-upload {
+      background-color: var(--primary);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background-color 0.2s;
+    }
+
+    .btn-upload:hover {
+      background-color: #0369a1;
+    }
+
+    input[type="file"] { display: none; }
+
+    .drop-zone {
+      max-width: 1400px;
+      margin: 0 auto 24px auto;
+      border: 2px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 32px;
+      text-align: center;
+      color: var(--text-muted);
+      background: #ffffff;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .drop-zone.hover {
+      border-color: var(--primary);
+      background: #f0f9ff;
+    }
+
+    .dashboard-container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Full Width Top Section for Total */
+    .total-section {
+      margin-bottom: 24px;
+      display: none;
+    }
+
+    .total-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 24px;
+      border: 2px solid var(--primary);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+
+    .card-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .card-header-row h2, .card-header-row h3 {
+      margin: 0;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .card-header-row h2 { font-size: 1.3rem; }
+    .card-header-row h3 { font-size: 1.1rem; }
+
+    .btn-expand {
+      background: #f1f5f9;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-expand:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .total-chart-container {
+      position: relative;
+      height: 340px;
+      width: 100%;
+    }
+
+    /* Grid layout for individual categories */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 24px;
+    }
+
+    .chart-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .chart-container {
+      position: relative;
+      height: 260px;
+      width: 100%;
+    }
+
+    /* Fullscreen Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 1200px;
+      height: 85vh;
+      padding: 32px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      color: var(--text-main);
+    }
+
+    .btn-close {
+      background: #fee2e2;
+      color: #dc2626;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background-color 0.2s;
+    }
+
+    .btn-close:hover {
+      background: #fca5a5;
+    }
+
+    .modal-chart-container {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>Financial Dashboard</h1>
+      <p>Processes <code>xx_xx_financial_planner.numbers</code> files</p>
+    </div>
+    <div>
+      <label for="folderInput" class="btn-upload">📁 Select Data Folder</label>
+      <input type="file" id="folderInput" webkitdirectory directory multiple>
+    </div>
+  </div>
+
+  <div id="dropZone" class="drop-zone">
+    Drag & Drop your budget folder or files anywhere on this page
+  </div>
+
+  <div class="dashboard-container">
+    <!-- Top Full-Width Section for Total -->
+    <div id="totalSection" class="total-section">
+      <div class="total-card">
+        <div class="card-header-row">
+          <h2>📊 Overall Budget vs. Actual (Total)</h2>
+          <button class="btn-expand" onclick="openFullscreen('Total', globalTimelineData['Total'])">⛶ Expand</button>
+        </div>
+        <div class="total-chart-container">
+          <canvas id="totalCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid Section for Individual Categories -->
+    <div class="charts-grid" id="chartsGrid"></div>
+  </div>
+
+  <!-- Fullscreen Chart Modal -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Category Title</h2>
+        <button class="btn-close" onclick="closeFullscreen()">✕ Close</button>
+      </div>
+      <div class="modal-chart-container">
+        <canvas id="modalCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // EXCLUSION LIST: ADD OR REMOVE CATEGORIES HERE
+    // -------------------------------------------------------------
+    const EXCLUDED_CATEGORIES = ['baby items'];
+
+    const folderInput = document.getElementById('folderInput');
+    const dropZone = document.getElementById('dropZone');
+    const chartsGrid = document.getElementById('chartsGrid');
+    const totalSection = document.getElementById('totalSection');
+    const totalCanvas = document.getElementById('totalCanvas');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalCanvas = document.getElementById('modalCanvas');
+
+    let activeCharts = [];
+    let modalChart = null;
+    let globalTimelineData = {};
+    let globalTimeLabels = [];
+
+    function isMatchingFile(filename) {
+      const lower = filename.toLowerCase();
+      return lower.endsWith('.numbers') && !lower.startsWith('._') && lower.includes('financial_planner');
+    }
+
+    // Handle File Input Selection
+    folderInput.addEventListener('change', (e) => processFiles(Array.from(e.target.files)));
+
+    // Handle Drag and Drop
+    window.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('hover'); });
+    window.addEventListener('dragleave', () => dropZone.classList.remove('hover'));
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('hover');
+      if (e.dataTransfer.files.length) {
+        processFiles(Array.from(e.dataTransfer.files));
+      }
+    });
+
+    // Close Modal on ESC key
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeFullscreen();
+    });
+
+    async function processFiles(allFiles) {
+      const files = allFiles.filter(f => isMatchingFile(f.name));
+      if (!files.length) {
+        alert('No matching xx_xx_financial_planner.numbers files found.');
+        return;
+      }
+
+      dropZone.style.display = 'none';
+      files.sort((a, b) => extractDateKey(a.name).localeCompare(extractDateKey(b.name)));
+
+      globalTimelineData = {};
+      globalTimeLabels = [];
+
+      for (const file of files) {
+        const timeLabel = formatFileLabel(file.name);
+        globalTimeLabels.push(timeLabel);
+
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+          const sheetName = workbook.SheetNames.find(n => n.toLowerCase().includes('budget')) || workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          parseSheetData(jsonData, timeLabel, globalTimelineData);
+        } catch (err) {
+          console.error(`Error reading ${file.name}:`, err);
+        }
+      }
+
+      renderDashboard(globalTimeLabels, globalTimelineData);
+    }
+
+    function extractDateKey(filename) {
+      const match = filename.match(/^(\d{2,4})[_-](\d{1,2})/);
+      if (match) {
+        const year = match[1].length === 2 ? '20' + match[1] : match[1];
+        const month = match[2].padStart(2, '0');
+        return `${year}-${month}`;
+      }
+      return filename;
+    }
+
+    function formatFileLabel(filename) {
+      const match = filename.match(/^(\d{2,4})[_-](\d{1,2})/);
+      if (match) {
+        const year = match[1].length === 2 ? '20' + match[1] : match[1];
+        const month = parseInt(match[2], 10);
+        const date = new Date(year, month - 1);
+        return date.toLocaleString('default', { month: 'short', year: '2-digit' });
+      }
+      return filename.replace('.numbers', '');
+    }
+
+    function cleanNumber(val) {
+      if (typeof val === 'number') return val;
+      if (!val) return 0;
+      let str = val.toString().trim();
+      let isNegative = str.includes('(') || str.includes('-');
+      str = str.replace(/[^0-9.]/g, '');
+      let num = parseFloat(str) || 0;
+      return isNegative ? -num : num;
+    }
+
+    function isExcluded(category) {
+      const lowerCat = category.toLowerCase().trim();
+      return EXCLUDED_CATEGORIES.some(excluded => excluded.toLowerCase().trim() === lowerCat);
+    }
+
+    function parseSheetData(rows, timeLabel, timelineData) {
+      let categoryColIdx = -1, budgetColIdx = -1, actualColIdx = -1, startRowIndex = -1;
+
+      for (let r = 0; r < rows.length; r++) {
+        const row = rows[r] || [];
+        for (let c = 0; c < row.length; c++) {
+          const cellStr = String(row[c] || '').toLowerCase().trim();
+          if (cellStr === 'category') categoryColIdx = c;
+          if (cellStr === 'budget') budgetColIdx = c;
+          if (cellStr === 'actual') actualColIdx = c;
+        }
+
+        if (categoryColIdx !== -1 && budgetColIdx !== -1 && actualColIdx !== -1) {
+          startRowIndex = r + 1;
+          break;
+        }
+      }
+
+      if (startRowIndex === -1) return;
+
+      for (let r = startRowIndex; r < rows.length; r++) {
+        const row = rows[r];
+        if (!row || !row[categoryColIdx]) continue;
+
+        const category = String(row[categoryColIdx]).trim();
+        if (!category || isExcluded(category)) continue;
+
+        const budgetVal = cleanNumber(row[budgetColIdx]);
+        const actualVal = cleanNumber(row[actualColIdx]);
+
+        if (!timelineData[category]) timelineData[category] = {};
+        timelineData[category][timeLabel] = { budget: budgetVal, actual: actualVal };
+      }
+    }
+
+    function renderDashboard(timeLabels, timelineData) {
+      activeCharts.forEach(c => c.destroy());
+      activeCharts = [];
+      chartsGrid.innerHTML = '';
+      totalSection.style.display = 'none';
+
+      const categories = Object.keys(timelineData);
+      const totalKey = categories.find(c => c.toLowerCase() === 'total');
+
+      // 1. Render Full Width Total Chart
+      if (totalKey && !isExcluded(totalKey)) {
+        totalSection.style.display = 'block';
+        const totalChart = createLineChart(totalCanvas, totalKey, timeLabels, timelineData[totalKey]);
+        activeCharts.push(totalChart);
+      }
+
+      // 2. Render remaining Category Charts
+      categories.forEach(category => {
+        if (category === totalKey || isExcluded(category)) return;
+
+        const card = document.createElement('div');
+        card.className = 'chart-card';
+        card.innerHTML = `
+          <div class="card-header-row">
+            <h3>${category}</h3>
+            <button class="btn-expand" onclick="openFullscreen('${category.replace(/'/g, "\\'")}')">⛶ Expand</button>
+          </div>
+          <div class="chart-container">
+            <canvas></canvas>
+          </div>
+        `;
+        chartsGrid.appendChild(card);
+
+        const canvas = card.querySelector('canvas');
+        const chart = createLineChart(canvas, category, timeLabels, timelineData[category]);
+        activeCharts.push(chart);
+      });
+    }
+
+    function createLineChart(canvas, categoryName, timeLabels, categoryData) {
+      const budgetSeries = timeLabels.map(l => (categoryData[l] ? categoryData[l].budget : 0));
+      const actualSeries = timeLabels.map(l => (categoryData[l] ? categoryData[l].actual : 0));
+
+      return new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: timeLabels,
+          datasets: [
+            {
+              label: 'Budget',
+              data: budgetSeries,
+              borderColor: '#0284c7',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              tension: 0.3,
+              fill: false
+            },
+            {
+              label: 'Actual',
+              data: actualSeries,
+              borderColor: '#e11d48',
+              borderWidth: 2,
+              tension: 0.3,
+              fill: {
+                target: 0,
+                above: 'rgba(239, 68, 68, 0.25)',  // Red shade when Actual > Budget
+                below: 'rgba(34, 197, 94, 0.25)'   // Green shade when Budget > Actual
+              }
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top', labels: { boxWidth: 12, usePointStyle: true } },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) label += ': ';
+                  if (context.parsed.y !== null) {
+                    label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed.y);
+                  }
+                  return label;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false } },
+            y: {
+              beginAtZero: true,
+              ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }
+            }
+          }
+        }
+      });
+    }
+
+    // Fullscreen Modal Control
+    function openFullscreen(category) {
+      const categoryData = globalTimelineData[category];
+      if (!categoryData) return;
+
+      modalTitle.innerText = `Category: ${category}`;
+      modalOverlay.classList.add('active');
+
+      if (modalChart) modalChart.destroy();
+      modalChart = createLineChart(modalCanvas, category, globalTimeLabels, categoryData);
+    }
+
+    function closeFullscreen() {
+      modalOverlay.classList.remove('active');
+      if (modalChart) {
+        modalChart.destroy();
+        modalChart = null;
+      }
+    }
+  </script>
+</body>
+</html>
