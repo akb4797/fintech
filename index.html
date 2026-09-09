@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Budget & Expenditure Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  
+
   <style>
     :root {
       --bg-color: #f8fafc;
@@ -34,7 +35,7 @@
       background: var(--card-bg);
       padding: 24px;
       border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
     .header h1 {
@@ -67,7 +68,11 @@
       background-color: #0369a1;
     }
 
-    input[type="file"] { display: none; }
+
+
+    input[type="file"] {
+      display: none;
+    }
 
     .drop-zone {
       max-width: 1400px;
@@ -91,6 +96,369 @@
       margin: 0 auto;
     }
 
+    /* Summary Metrics Section */
+    .summary-section {
+      margin-bottom: 24px;
+      display: none;
+    }
+
+    .summary-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      background: var(--card-bg);
+      padding: 16px 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .summary-header-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .period-filter-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .period-filter-container label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .period-select {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 14px;
+      padding-right: 32px;
+    }
+
+    .period-select:hover,
+    .period-select:focus {
+      border-color: var(--primary);
+      background-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 24px;
+    }
+
+    .summary-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 22px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .summary-card-header {
+      margin-bottom: 16px;
+    }
+
+    .summary-card-header h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .summary-card-header p {
+      margin: 4px 0 0 0;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* KPI Card: Avg Spend */
+    .kpi-main-val {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+      margin: 4px 0 8px 0;
+    }
+
+    .stat-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .badge-danger {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+
+    .badge-success {
+      background: #f0fdf4;
+      color: #16a34a;
+      border: 1px solid #bbf7d0;
+    }
+
+    .kpi-details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px dashed var(--border-color);
+    }
+
+    .kpi-detail-item {
+      background: #f8fafc;
+      padding: 10px 12px;
+      border-radius: 8px;
+    }
+
+    .kpi-detail-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+
+    .kpi-detail-value {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* Category Pie Chart */
+    .pie-chart-container {
+      position: relative;
+      height: 250px;
+      width: 100%;
+    }
+
+    /* Top 5 Spents List */
+    .top-spent-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .top-spent-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .spent-rank {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+
+    .rank-1 {
+      background: #fef3c7;
+      color: #d97706;
+    }
+
+    .rank-2 {
+      background: #e0e7ff;
+      color: #4f46e5;
+    }
+
+    .rank-3 {
+      background: #e0f2fe;
+      color: #0284c7;
+    }
+
+    .rank-4 {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .rank-5 {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .spent-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .spent-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+
+    .spent-cat-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .spent-amount {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #0f172a;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+
+    .btn-expand-sm {
+      background: #f1f5f9;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .btn-expand-sm:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .btn-toggle-trx {
+      background: #f1f5f9;
+      border: 1px solid var(--border-color);
+      color: var(--primary);
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 2px 7px;
+      border-radius: 5px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn-toggle-trx:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .trx-bullet-list {
+      margin: 10px 0 4px 0;
+      list-style-type: disc;
+      display: none;
+      font-size: 0.8rem;
+      color: var(--text-main);
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 10px 12px 10px 28px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .trx-bullet-list li {
+      margin-bottom: 6px;
+      line-height: 1.45;
+    }
+
+    .trx-bullet-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .trx-budget-text {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .spent-subtext {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .spent-progress-bar {
+      height: 5px;
+      background: #f1f5f9;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .spent-progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    .rank-fill-1 {
+      background: #f59e0b;
+    }
+
+    .rank-fill-2 {
+      background: #6366f1;
+    }
+
+    .rank-fill-3 {
+      background: #0284c7;
+    }
+
+    .rank-fill-4 {
+      background: #64748b;
+    }
+
+    .rank-fill-5 {
+      background: #94a3b8;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 24px;
+    }
+
     /* Full Width Top Section for Total */
     .total-section {
       margin-bottom: 24px;
@@ -102,7 +470,7 @@
       border-radius: 12px;
       padding: 24px;
       border: 2px solid var(--primary);
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
 
     .card-header-row {
@@ -112,14 +480,20 @@
       margin-bottom: 16px;
     }
 
-    .card-header-row h2, .card-header-row h3 {
+    .card-header-row h2,
+    .card-header-row h3 {
       margin: 0;
       font-weight: 700;
       color: var(--text-main);
     }
 
-    .card-header-row h2 { font-size: 1.3rem; }
-    .card-header-row h3 { font-size: 1.1rem; }
+    .card-header-row h2 {
+      font-size: 1.3rem;
+    }
+
+    .card-header-row h3 {
+      font-size: 1.1rem;
+    }
 
     .btn-expand {
       background: #f1f5f9;
@@ -160,7 +534,7 @@
       border-radius: 12px;
       padding: 20px;
       border: 1px solid var(--border-color);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
     .chart-container {
@@ -240,6 +614,7 @@
     }
   </style>
 </head>
+
 <body>
 
   <div class="header">
@@ -258,6 +633,78 @@
   </div>
 
   <div class="dashboard-container">
+    <!-- Top Summary Metrics Section -->
+    <div id="summarySection" class="summary-section">
+      <div class="summary-header-row">
+        <h2 class="summary-header-title">⚡ Executive Summary</h2>
+        <div class="period-filter-container">
+          <label for="summaryPeriodSelect">📅 Select Period:</label>
+          <select id="summaryPeriodSelect" class="period-select">
+            <option value="all">All Months</option>
+            <option value="last1">Latest Month</option>
+            <option value="last2">Last 2 Months</option>
+            <option value="last3">Last 3 Months</option>
+            <option value="last6">Last 6 Months</option>
+            <option value="last12">Last 12 Months</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="summary-grid">
+
+        <!-- Metric 1: Average Monthly Spend -->
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <h2>💳 Avg. Monthly Spend</h2>
+            <p>Average expenditure per month across selected period</p>
+          </div>
+          <div class="kpi-main-val" id="avgMonthlySpendVal">₹0</div>
+          <div>
+            <span id="avgBudgetDiffVal" class="stat-badge badge-success">--</span>
+          </div>
+          <div class="kpi-details-grid">
+            <div class="kpi-detail-item">
+              <div class="kpi-detail-label">Total Spend</div>
+              <div class="kpi-detail-value" id="totalSpendVal">₹0</div>
+            </div>
+            <div class="kpi-detail-item">
+              <div class="kpi-detail-label">Period</div>
+              <div class="kpi-detail-value" id="monthRangeVal">0 mos</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metric 2: Category Wise Split Pie Chart -->
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <h2>📊 Category Wise Split</h2>
+            <p>Expense distribution for selected period</p>
+          </div>
+          <div class="pie-chart-container">
+            <canvas id="categoryPieCanvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Metric 3: Top 5 Spents -->
+        <div class="summary-card">
+          <div class="card-header-row" style="margin-bottom: 12px;">
+            <div>
+              <h2>🔥 Top 5 Spents</h2>
+              <p style="margin: 4px 0 0 0; font-size: 0.82rem; color: var(--text-muted);">
+                Highest expenditures in <span id="last2MonthsSubtitle">selected period</span>
+              </p>
+            </div>
+            <button id="btnToggleAllTop5" class="btn-expand-sm" onclick="toggleAllTop5Transactions()">⛶ Expand
+              All</button>
+          </div>
+          <div class="top-spent-list" id="top5List">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- Top Full-Width Section for Total -->
     <div id="totalSection" class="total-section">
       <div class="total-card">
@@ -294,19 +741,80 @@
     // -------------------------------------------------------------
     const EXCLUDED_CATEGORIES = ['baby items'];
 
+    const CATEGORY_COLORS = [
+      '#0284c7', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
+      '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
+      '#06b6d4', '#d97706', '#a855f7', '#64748b', '#e11d48'
+    ];
+
     const folderInput = document.getElementById('folderInput');
     const dropZone = document.getElementById('dropZone');
     const chartsGrid = document.getElementById('chartsGrid');
     const totalSection = document.getElementById('totalSection');
     const totalCanvas = document.getElementById('totalCanvas');
+    const summarySection = document.getElementById('summarySection');
+    const summaryPeriodSelect = document.getElementById('summaryPeriodSelect');
     const modalOverlay = document.getElementById('modalOverlay');
     const modalTitle = document.getElementById('modalTitle');
     const modalCanvas = document.getElementById('modalCanvas');
 
     let activeCharts = [];
+    let pieChartInstance = null;
     let modalChart = null;
     let globalTimelineData = {};
     let globalTimeLabels = [];
+
+    // Period Filter Listener for Summary Widgets
+    summaryPeriodSelect.addEventListener('change', () => {
+      const selectedPeriod = summaryPeriodSelect.value;
+      const filteredLabels = getFilteredTimeLabels(globalTimeLabels, selectedPeriod);
+      renderSummarySection(filteredLabels, globalTimelineData);
+    });
+
+    function getFilteredTimeLabels(allLabels, periodKey) {
+      if (!allLabels || !allLabels.length) return [];
+      if (periodKey === 'all') return allLabels;
+      if (periodKey === 'last1') return allLabels.slice(-1);
+      if (periodKey === 'last2') return allLabels.slice(-2);
+      if (periodKey === 'last3') return allLabels.slice(-3);
+      if (periodKey === 'last6') return allLabels.slice(-6);
+      if (periodKey === 'last12') return allLabels.slice(-12);
+      if (periodKey.startsWith('month:')) {
+        const target = periodKey.replace('month:', '');
+        return allLabels.includes(target) ? [target] : allLabels;
+      }
+      return allLabels;
+    }
+
+    function updatePeriodDropdownOptions(allLabels) {
+      if (!allLabels || !allLabels.length) return;
+      const currentVal = summaryPeriodSelect.value;
+
+      let html = `
+        <option value="all">All Months (${allLabels.length})</option>
+        <option value="last1">Latest Month (${allLabels.slice(-1)[0] || ''})</option>
+      `;
+
+      if (allLabels.length >= 2) html += `<option value="last2">Last 2 Months</option>`;
+      if (allLabels.length >= 3) html += `<option value="last3">Last 3 Months</option>`;
+      if (allLabels.length >= 6) html += `<option value="last6">Last 6 Months</option>`;
+      if (allLabels.length >= 12) html += `<option value="last12">Last 12 Months</option>`;
+
+      html += `<optgroup label="Specific Month">`;
+      allLabels.forEach(m => {
+        html += `<option value="month:${m}">${m}</option>`;
+      });
+      html += `</optgroup>`;
+
+      summaryPeriodSelect.innerHTML = html;
+
+      const validValues = Array.from(summaryPeriodSelect.options).map(o => o.value);
+      if (validValues.includes(currentVal)) {
+        summaryPeriodSelect.value = currentVal;
+      } else {
+        summaryPeriodSelect.value = 'all';
+      }
+    }
 
     function isMatchingFile(filename) {
       const lower = filename.toLowerCase();
@@ -402,7 +910,7 @@
     }
 
     function parseSheetData(rows, timeLabel, timelineData) {
-      let categoryColIdx = -1, budgetColIdx = -1, actualColIdx = -1, startRowIndex = -1;
+      let categoryColIdx = -1, budgetColIdx = -1, actualColIdx = -1, itemColIdx = -1, startRowIndex = -1;
 
       for (let r = 0; r < rows.length; r++) {
         const row = rows[r] || [];
@@ -411,6 +919,7 @@
           if (cellStr === 'category') categoryColIdx = c;
           if (cellStr === 'budget') budgetColIdx = c;
           if (cellStr === 'actual') actualColIdx = c;
+          if (cellStr === 'item' || cellStr === 'description' || cellStr === 'notes' || cellStr === 'subcategory' || cellStr === 'details') itemColIdx = c;
         }
 
         if (categoryColIdx !== -1 && budgetColIdx !== -1 && actualColIdx !== -1) {
@@ -430,17 +939,315 @@
 
         const budgetVal = cleanNumber(row[budgetColIdx]);
         const actualVal = cleanNumber(row[actualColIdx]);
+        const itemDesc = itemColIdx !== -1 && row[itemColIdx] ? String(row[itemColIdx]).trim() : '';
 
         if (!timelineData[category]) timelineData[category] = {};
-        timelineData[category][timeLabel] = { budget: budgetVal, actual: actualVal };
+        if (!timelineData[category][timeLabel]) {
+          timelineData[category][timeLabel] = { budget: budgetVal, actual: actualVal, transactions: [] };
+        } else {
+          timelineData[category][timeLabel].budget += budgetVal;
+          timelineData[category][timeLabel].actual += actualVal;
+        }
+
+        if (!timelineData[category][timeLabel].transactions) {
+          timelineData[category][timeLabel].transactions = [];
+        }
+
+        if (actualVal !== 0 || budgetVal !== 0) {
+          timelineData[category][timeLabel].transactions.push({
+            month: timeLabel,
+            description: itemDesc,
+            budget: budgetVal,
+            actual: actualVal
+          });
+        }
+      }
+    }
+
+    function formatCurrency(val) {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0
+      }).format(val || 0);
+    }
+
+    function renderSummarySection(timeLabels, timelineData) {
+      if (!timeLabels.length || !summarySection) return;
+
+      const categories = Object.keys(timelineData).filter(c => c.toLowerCase() !== 'total' && !isExcluded(c));
+      if (!categories.length) return;
+
+      summarySection.style.display = 'block';
+
+      let totalSpendAllMonths = 0;
+      let totalBudgetAllMonths = 0;
+      const categoryTotals = {};
+
+      categories.forEach(cat => {
+        categoryTotals[cat] = 0;
+        timeLabels.forEach(m => {
+          const actual = timelineData[cat][m] ? timelineData[cat][m].actual : 0;
+          const budget = timelineData[cat][m] ? timelineData[cat][m].budget : 0;
+          totalSpendAllMonths += actual;
+          totalBudgetAllMonths += budget;
+          categoryTotals[cat] += actual;
+        });
+      });
+
+      const numMonths = timeLabels.length;
+      const avgMonthlySpend = totalSpendAllMonths / numMonths;
+      const avgMonthlyBudget = totalBudgetAllMonths / numMonths;
+      const diffAvg = avgMonthlySpend - avgMonthlyBudget;
+
+      const avgSpendEl = document.getElementById('avgMonthlySpendVal');
+      const totalSpendEl = document.getElementById('totalSpendVal');
+      const monthRangeEl = document.getElementById('monthRangeVal');
+      const avgBudgetDiffEl = document.getElementById('avgBudgetDiffVal');
+
+      if (avgSpendEl) avgSpendEl.innerText = formatCurrency(avgMonthlySpend);
+      if (totalSpendEl) totalSpendEl.innerText = formatCurrency(totalSpendAllMonths);
+      if (monthRangeEl) {
+        const rangeText = numMonths === 1
+          ? timeLabels[0]
+          : `${timeLabels[0]} – ${timeLabels[numMonths - 1]} (${numMonths} mos)`;
+        monthRangeEl.innerText = rangeText;
+      }
+      if (avgBudgetDiffEl) {
+        const isOver = diffAvg > 0;
+        const absDiff = Math.abs(diffAvg);
+        const pct = avgMonthlyBudget > 0 ? ((absDiff / avgMonthlyBudget) * 100).toFixed(1) : 0;
+        avgBudgetDiffEl.className = `stat-badge ${isOver ? 'badge-danger' : 'badge-success'}`;
+        avgBudgetDiffEl.innerText = isOver
+          ? `+${formatCurrency(absDiff)} (${pct}%) over budget/mo`
+          : `-${formatCurrency(absDiff)} (${pct}%) under budget/mo`;
+      }
+
+      // 2. Render Category Pie Chart
+      const pieCanvas = document.getElementById('categoryPieCanvas');
+      const pieLabels = [];
+      const pieData = [];
+
+      if (pieChartInstance) {
+        pieChartInstance.destroy();
+        pieChartInstance = null;
+      }
+
+      const sortedCategories = categories
+        .map(cat => ({ category: cat, total: categoryTotals[cat] }))
+        .filter(item => item.total > 0)
+        .sort((a, b) => b.total - a.total);
+
+      sortedCategories.forEach(item => {
+        pieLabels.push(item.category);
+        pieData.push(item.total);
+      });
+
+      if (pieCanvas) {
+        pieChartInstance = new Chart(pieCanvas, {
+          type: 'doughnut',
+          data: {
+            labels: pieLabels,
+            datasets: [{
+              data: pieData,
+              backgroundColor: CATEGORY_COLORS.slice(0, pieLabels.length),
+              borderWidth: 2,
+              borderColor: '#ffffff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'right',
+                labels: {
+                  boxWidth: 12,
+                  usePointStyle: true,
+                  font: { size: 11 },
+                  padding: 10
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    const label = context.label || '';
+                    const val = context.parsed || 0;
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                    return `${label}: ${formatCurrency(val)} (${pct}%)`;
+                  }
+                }
+              }
+            },
+            cutout: '60%'
+          }
+        });
+      }
+
+      // 3. Top 5 Spents over Selected Period
+      const periodSubtitle = document.getElementById('last2MonthsSubtitle');
+      if (periodSubtitle) {
+        if (timeLabels.length === 1) {
+          periodSubtitle.innerText = timeLabels[0];
+        } else {
+          periodSubtitle.innerText = `${timeLabels[0]} – ${timeLabels[timeLabels.length - 1]}`;
+        }
+      }
+
+      const top5ListEl = document.getElementById('top5List');
+      if (top5ListEl) {
+        top5ListEl.innerHTML = '';
+
+        const btnToggleAll = document.getElementById('btnToggleAllTop5');
+        if (btnToggleAll) btnToggleAll.innerHTML = '⛶ Expand All';
+
+        const last2Spent = categories.map(cat => {
+          let spent = 0;
+          let monthBreakdown = [];
+          let transactions = [];
+
+          timeLabels.forEach(m => {
+            if (timelineData[cat][m]) {
+              const val = timelineData[cat][m].actual || 0;
+              const bval = timelineData[cat][m].budget || 0;
+              spent += val;
+              if (val > 0 || bval > 0) {
+                monthBreakdown.push(`${m}: ${formatCurrency(val)}`);
+              }
+
+              if (timelineData[cat][m].transactions && timelineData[cat][m].transactions.length) {
+                timelineData[cat][m].transactions.forEach(t => transactions.push(t));
+              } else if (val > 0 || bval > 0) {
+                transactions.push({
+                  month: m,
+                  description: '',
+                  budget: bval,
+                  actual: val
+                });
+              }
+            }
+          });
+
+          return { category: cat, totalSpent: spent, breakdown: monthBreakdown.join(' | '), transactions: transactions };
+        })
+          .filter(item => item.totalSpent > 0)
+          .sort((a, b) => b.totalSpent - a.totalSpent)
+          .slice(0, 5);
+
+        const maxSpent = last2Spent.length > 0 ? last2Spent[0].totalSpent : 1;
+
+        if (last2Spent.length === 0) {
+          top5ListEl.innerHTML = '<div class="empty-state">No expenditure recorded in selected period.</div>';
+        } else {
+          last2Spent.forEach((item, index) => {
+            const pct = Math.round((item.totalSpent / maxSpent) * 100);
+            const li = document.createElement('div');
+            li.className = 'top-spent-item';
+
+            let trxListHtml = '';
+            if (item.transactions && item.transactions.length) {
+              trxListHtml += `<ul class="trx-bullet-list" style="display: none;" data-count="${item.transactions.length}">`;
+              item.transactions.forEach(t => {
+                let catDesc = item.category;
+                if (t.description) {
+                  catDesc += ` - ${t.description}`;
+                }
+                let label = `<strong>${catDesc}</strong> (${t.month}) — <strong>${formatCurrency(t.actual)}</strong>`;
+                if (t.budget > 0) {
+                  label += ` <span class="trx-budget-text">(Budget: ${formatCurrency(t.budget)})</span>`;
+                }
+                trxListHtml += `<li>${label}</li>`;
+              });
+              trxListHtml += `</ul>`;
+            }
+
+            const toggleBtnHtml = item.transactions.length
+              ? `<button class="btn-toggle-trx" onclick="toggleTransactions(this)">▼ ${item.transactions.length} Transaction${item.transactions.length > 1 ? 's' : ''}</button>`
+              : '';
+
+            li.innerHTML = `
+              <div class="spent-rank rank-${index + 1}">#${index + 1}</div>
+              <div class="spent-details">
+                <div class="spent-title-row">
+                  <span class="spent-cat-name">${item.category}</span>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="spent-amount">${formatCurrency(item.totalSpent)}</span>
+                    ${toggleBtnHtml}
+                  </div>
+                </div>
+                <div class="spent-progress-bar">
+                  <div class="spent-progress-fill rank-fill-${index + 1}" style="width: ${pct}%"></div>
+                </div>
+                ${trxListHtml}
+              </div>
+            `;
+            top5ListEl.appendChild(li);
+          });
+        }
+      }
+    }
+
+    function toggleTransactions(btn) {
+      const container = btn.closest('.top-spent-item');
+      if (!container) return;
+      const list = container.querySelector('.trx-bullet-list');
+      if (!list) return;
+
+      const isHidden = list.style.display === 'none' || !list.style.display;
+      list.style.display = isHidden ? 'block' : 'none';
+
+      const count = list.dataset.count || 0;
+      btn.innerHTML = isHidden
+        ? `▲ Hide Details`
+        : `▼ ${count} Transaction${count > 1 ? 's' : ''}`;
+    }
+
+    function toggleAllTop5Transactions() {
+      const btn = document.getElementById('btnToggleAllTop5');
+      const lists = document.querySelectorAll('#top5List .trx-bullet-list');
+      const toggleBtns = document.querySelectorAll('#top5List .btn-toggle-trx');
+
+      if (!lists.length) return;
+
+      let anyHidden = false;
+      lists.forEach(l => {
+        if (l.style.display === 'none' || !l.style.display) anyHidden = true;
+      });
+
+      lists.forEach(l => {
+        l.style.display = anyHidden ? 'block' : 'none';
+      });
+
+      toggleBtns.forEach(b => {
+        const list = b.closest('.top-spent-item')?.querySelector('.trx-bullet-list');
+        const count = list ? (list.dataset.count || 0) : 0;
+        b.innerHTML = anyHidden
+          ? `▲ Hide Details`
+          : `▼ ${count} Transaction${count > 1 ? 's' : ''}`;
+      });
+
+      if (btn) {
+        btn.innerHTML = anyHidden ? `▲ Collapse All` : `⛶ Expand All`;
       }
     }
 
     function renderDashboard(timeLabels, timelineData) {
       activeCharts.forEach(c => c.destroy());
       activeCharts = [];
+      if (pieChartInstance) {
+        pieChartInstance.destroy();
+        pieChartInstance = null;
+      }
       chartsGrid.innerHTML = '';
       totalSection.style.display = 'none';
+      if (summarySection) summarySection.style.display = 'none';
+
+      updatePeriodDropdownOptions(timeLabels);
+
+      const selectedPeriod = summaryPeriodSelect.value;
+      const filteredLabels = getFilteredTimeLabels(timeLabels, selectedPeriod);
+      renderSummarySection(filteredLabels, timelineData);
 
       const categories = Object.keys(timelineData);
       const totalKey = categories.find(c => c.toLowerCase() === 'total');
@@ -516,7 +1323,7 @@
             legend: { position: 'top', labels: { boxWidth: 12, usePointStyle: true } },
             tooltip: {
               callbacks: {
-                label: function(context) {
+                label: function (context) {
                   let label = context.dataset.label || '';
                   if (label) label += ': ';
                   if (context.parsed.y !== null) {
@@ -559,4 +1366,5 @@
     }
   </script>
 </body>
+
 </html>
